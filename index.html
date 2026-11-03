@@ -16,11 +16,10 @@ body{background:var(--bg);color:var(--text);font:400 16px/1.65 var(--body);overf
 #back{position:fixed;z-index:7;top:calc(16px + env(safe-area-inset-top,0px));right:16px;display:none;font:500 14px var(--head);color:var(--edge);background:rgba(4,8,10,.6);border:1px solid var(--edge);padding:8px 16px;cursor:pointer;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
 #back.on{display:block}#back:hover,#back:focus-visible{color:var(--gold);border-color:var(--gold);outline:none}
 #hint{position:fixed;z-index:6;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom,0px));text-align:center;font-size:12px;color:var(--dim);pointer-events:none;letter-spacing:.06em}
-#stage{position:fixed;inset:0;z-index:5;display:grid;place-items:center;touch-action:none;transition:opacity .2s}
+#stage{position:fixed;inset:0;z-index:5;overflow-x:hidden;display:grid;place-items:center;touch-action:none;transition:opacity .2s}
 #stage.out{opacity:0;pointer-events:none}
 #stage.page{display:block;overflow-y:auto;touch-action:pan-y}
-@keyframes rise{0%{opacity:0;transform:scale(.88);filter:blur(12px)}60%{opacity:1;filter:blur(3px)}100%{opacity:1;transform:none;filter:none}}
-#menu{display:flex;flex-wrap:wrap;gap:clamp(14px,3vw,34px);justify-content:center;align-items:center;max-width:1100px;padding:90px 20px 50px;animation:rise .5s .35s cubic-bezier(.1,.8,.2,1) both}
+#menu{display:flex;flex-wrap:wrap;gap:clamp(14px,3vw,34px);justify-content:center;align-items:center;max-width:1100px;padding:90px 20px 50px}
 .it{padding:0;border:0;background:none;cursor:pointer;color:inherit;font:inherit;filter:drop-shadow(0 0 .6px var(--edge)) drop-shadow(0 0 .6px var(--edge));transition:filter .25s,transform .25s}
 .it:hover,.it:focus-visible{outline:none;transform:scale(1.04);filter:drop-shadow(0 0 .8px var(--gold)) drop-shadow(0 0 14px rgba(255,199,102,.35))}
 .it.big{width:clamp(150px,34vw,300px);height:clamp(130px,26vw,230px)}
@@ -31,7 +30,7 @@ body{background:var(--bg);color:var(--text);font:400 16px/1.65 var(--body);overf
 .in b{font:700 clamp(15px,2.4vw,22px) var(--head);color:#e6fffa;letter-spacing:.04em;text-shadow:0 1px 10px #000}
 .in i{font:500 12px var(--body);color:var(--gold);font-style:normal}
 #empty{display:none;text-align:center;color:var(--dim);padding:30px}
-.wrap{max-width:720px;min-height:100%;margin:0 auto;padding:calc(84px + env(safe-area-inset-top,0px)) 22px 90px;background:rgba(4,8,10,.74);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);animation:rise .5s .35s cubic-bezier(.1,.8,.2,1) both}
+.wrap{max-width:720px;min-height:100%;margin:0 auto;padding:calc(84px + env(safe-area-inset-top,0px)) 22px 90px;background:rgba(4,8,10,.74);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .wrap h1,.wrap h2,.wrap h3{font-family:var(--head);color:#e6fffa;line-height:1.15}
 .wrap h1{font-size:clamp(30px,7vw,48px);margin:0 0 .4em}.wrap h2{font-size:22px;color:var(--edge);margin:1.8em 0 .5em}
 .wrap a{color:var(--edge)}.wrap a:hover{color:var(--gold)}
@@ -46,6 +45,7 @@ body{background:var(--bg);color:var(--text);font:400 16px/1.65 var(--body);overf
 <canvas id="c"></canvas><canvas id="cr"></canvas>
 <div id="brand"><div id="name"></div><div id="tag"></div></div>
 <button id="back">Back</button>
+<svg width="0" height="0" style="position:absolute"><filter id="hb" x="-40%" y="0" width="180%" height="100%"><feGaussianBlur id="hbs" stdDeviation="0 0"/></filter></svg>
 <div id="stage"></div>
 <div id="hint">tap to shatter · drag to push</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -134,24 +134,25 @@ addEventListener('pointermove',e=>{if(R)mv(e)});
 addEventListener('pointerdown',e=>{if(R)mv(e)});
 addEventListener('pointerup',e=>{if(R&&e.pointerType==='touch'){mw=null;U.uMouse.value.set(-9999,0)}});
 document.documentElement.addEventListener('mouseleave',()=>{if(R){mw=null;U.uMouse.value.set(-9999,0)}});
-let last=performance.now()/1e3;
+let last=performance.now()/1e3,lastTX=0;
 function loop(){requestAnimationFrame(loop);const now=performance.now()/1e3,dt=Math.min(.05,now-last);last=now;
  // palette + texture crossfade
  const cs=U.uSpark.value;let dd=0;
  for(let i=0;i<3;i++){const a=['r','g','b'][i];cs[a]+=(Tspark[i]-cs[a])*.08;dd+=Math.abs(Tedge[i]-cssE[i]);cssE[i]+=(Tedge[i]-cssE[i])*.08}
  if(dd>.004)document.documentElement.style.setProperty('--edge',`rgb(${cssE[0]*255|0},${cssE[1]*255|0},${cssE[2]*255|0})`);
  if(tgt){fm=Math.min(1,fm+dt/.5);U.uMix.value=fm*fm*(3-2*fm);if(fm>=1){cur=tgt;tgt=null;fm=0;U.uTex.value=texOf(cur);U.uImg.value.set(cur.w,cur.h);U.uMix.value=0}}
+ const tt=phase==='fly'?now-t0:0,TX=phase==='fly'?.22*W*(1-Math.pow(1-Math.min(1,tt/.75),3)):0,dTX=TX-lastTX;lastTX=TX;
  sh.forEach(s=>{const m=s.m;
  if(phase==='rest'){let tx=0,ty=0,tz=0;if(mw){const dx=s.hx-mw.x,dy=s.hy-mw.y,d=Math.hypot(dx,dy)+.01,f=Math.exp(-d*d/2.2);tx=dx/d*f*.7;ty=dy/d*f*.7;tz=f*.6;s.rx=-dy/d*f*.6;s.ry=dx/d*f*.6}else{s.rx=s.ry=0}
  m.position.x+=(s.hx+tx-m.position.x)*.12;m.position.y+=(s.hy+ty-m.position.y)*.12;m.position.z+=(tz-m.position.z)*.12;
  m.rotation.x+=((s.rx||0)-m.rotation.x)*.12;m.rotation.y+=((s.ry||0)-m.rotation.y)*.12;m.rotation.z*=.88}
- else if(phase==='fly'){const u=Math.max(0,now-t0-s.dl),k=1-Math.exp(-2.5*u);m.position.set(s.hx+s.dx*s.spd*k*1.6,s.hy+s.dy*s.spd*k*1.6,s.zv*k*1.8);
+ else if(phase==='fly'){const u=Math.max(0,now-t0-s.dl),k=1-Math.exp(-2.5*u),zz=s.zv*k*1.8;m.position.set(s.hx+s.dx*s.spd*k*1.6+TX*10/Math.max(3,10-zz),s.hy+s.dy*s.spd*k*1.6,zz);
  if(u>0){m.rotation.x+=s.sp[0]*dt;m.rotation.y+=s.sp[1]*dt;m.rotation.z+=s.sp[2]*dt}}
  else{const u=Math.min(1,Math.max(0,(now-t1-s.bd)/1.1)),e=u*u*(3-2*u),f=s.fr;
  m.position.set(f[0]+(s.hx-f[0])*e,f[1]+(s.hy-f[1])*e,f[2]*(1-e));m.rotation.set(f[3]*(1-e),f[4]*(1-e),f[5]*(1-e))}});
  if(phase==='fly'){if(now-t0>1.7){phase='back';t1=now;sh.forEach(s=>{const m=s.m;s.fr=[m.position.x,m.position.y,m.position.z,m.rotation.x,m.rotation.y,m.rotation.z];s.bd=Math.random()*.5})}}
  else if(phase==='back'&&now-t1>1.8){phase='rest';if(onRest){const f=onRest;onRest=null;f()}}
- F.forEach(s=>{const m=s.m,p=m.position,k=(10-p.z)/10;
+ F.forEach(s=>{const m=s.m,p=m.position,k=(10-p.z)/10;if(phase==='fly')p.x+=dTX*10/Math.max(3,10-p.z);
  if(mw){const dx=p.x-mw.x*k,dy=p.y-mw.y*k,d=Math.hypot(dx,dy)+.01,f=Math.exp(-d*d/1.5);s.v[0]+=dx/d*f*16*dt;s.v[1]+=dy/d*f*16*dt;s.v[2]+=f*4*dt}
  const e=Math.min(1,1.2*dt);for(let i=0;i<3;i++)s.v[i]+=(s.b[i]-s.v[i])*e;
  p.x+=s.v[0]*dt;p.y+=s.v[1]*dt;p.z+=s.v[2]*dt;if(p.z>6&&s.v[2]>0)s.v[2]*=-1;if(p.z<-3&&s.v[2]<0)s.v[2]*=-1;
@@ -178,15 +179,21 @@ function cracks(x,y,done){
   cc.restore();
   if(p<1)requestAnimationFrame(f);else done()})()}
 function streaks(x,y){const D=Math.min(devicePixelRatio||1,2),w=innerWidth,h=innerHeight;CR.style.opacity=1;CR.width=w*D;CR.height=h*D;cc.setTransform(D,0,0,D,0,0);
- const L=Math.hypot(w,h),ls=Array.from({length:100},()=>({a:rnd(0,6.283),r:rnd(.02,.2)*L,v:rnd(1.2,3.2)*L,w:rnd(.6,2.2),len:rnd(.04,.22)*L})),B=performance.now();
+ const hl=Array.from({length:70},()=>({y:rnd(0,h),x:rnd(0,w),v:rnd(.7,2.2)*w,len:rnd(.1,.35)*w,w:rnd(.5,1.6)})),L=Math.hypot(w,h),ls=Array.from({length:100},()=>({a:rnd(0,6.283),r:rnd(.02,.2)*L,v:rnd(1.2,3.2)*L,w:rnd(.6,2.2),len:rnd(.04,.22)*L})),B=performance.now();
  (function f(){const t=(performance.now()-B)/1000,p=Math.min(1,t/.4);cc.clearRect(0,0,w,h);
   const g=cc.createRadialGradient(x,y,0,x,y,L*.35*(.4+p));g.addColorStop(0,`rgba(220,250,255,${.6*(1-p)})`);g.addColorStop(1,'rgba(220,250,255,0)');cc.fillStyle=g;cc.fillRect(0,0,w,h);
   cc.lineCap='round';ls.forEach(l=>{const r=l.r+l.v*(1-Math.exp(-6*t)),q=l.len*(1-p),c=Math.cos(l.a),n=Math.sin(l.a);cc.strokeStyle=`rgba(235,250,255,${(1-p)*.8})`;cc.lineWidth=l.w;cc.beginPath();cc.moveTo(x+c*r,y+n*r);cc.lineTo(x+c*(r-q),y+n*(r-q));cc.stroke()});
+  hl.forEach(l=>{const x2=l.x+l.v*(1-Math.exp(-6*t));cc.strokeStyle=`rgba(225,248,255,${(1-p)*.45})`;cc.lineWidth=l.w;cc.beginPath();cc.moveTo(x2-l.len*(1-p),l.y);cc.lineTo(x2,l.y);cc.stroke()});
   if(p<1)requestAnimationFrame(f);else cc.clearRect(0,0,w,h)})()}
-let busy=false;
+let busy=false,animNext=false;
+function landIn(el,delay,anim){if(!el||!anim)return;el.style.opacity=0;
+ setTimeout(()=>{const B=performance.now(),D=380,sx=innerWidth*.28;el.style.filter='url(#hb)';
+  (function f(){const t=Math.min(1,(performance.now()-B)/D),r=Math.pow(1-t,3);el.style.opacity=Math.min(1,t*5);el.style.transform=`translateX(${-sx*r}px)`;$('#hbs').setAttribute('stdDeviation',(26*Math.pow(r,.8)).toFixed(1)+' 0');
+   if(t<1)requestAnimationFrame(f);else{el.style.filter='';el.style.transform='';el.style.opacity=1}})()},delay)}
 function transition(x,y,swap){
  if(busy)return;busy=true;
  if(reduced||!R){swap();busy=false;return}
+ animNext=true;
  $('#stage').classList.add('out');
  cracks(x,y,()=>{
   shatter(x,y);swap();
@@ -229,12 +236,12 @@ function showMenu(node){
   ...node.projects.map(p=>({label:p.name,sub:'',p,pr:p.cover?p:null}))];
  const big=items.length<=4;
  stage.innerHTML=`<div id="menu">${items.map((it,i)=>`<button class="it ${big?'big':'sm'}" data-i="${i}"><span class="in" style="clip-path:${poly()};${it.pr?`--th:url('${it.pr.cover}')`:''}"><b>${esc(it.label)}</b>${it.sub?`<i>${it.sub}</i>`:''}</span></button>`).join('')}</div>`;
- baseCover=(firstCover(node)||{}).coverFull||null;setCover(baseCover);
+ baseCover=(firstCover(node)||{}).coverFull||null;setCover(baseCover);{const a=animNext;animNext=false;landIn(stage.firstElementChild,550,a)}
  $('#hint').style.display='';crumb()}
 function showPage(p){
  page=p;stage.classList.add('page');
  stage.innerHTML=`<div class="wrap">${md(p.md,p)}</div>`;stage.scrollTop=0;
- baseCover=p.coverFull||null;setCover(baseCover);$('#hint').style.display='none';crumb()}
+ baseCover=p.coverFull||null;setCover(baseCover);{const a=animNext;animNext=false;landIn(stage.firstElementChild,550,a)}$('#hint').style.display='none';crumb()}
 function crumb(){$('#back').classList.toggle('on',!!page||stack.length>1)}
 function centre(e,el){if(e&&e.detail>0&&e.clientX!==undefined)return[e.clientX,e.clientY];const r=el.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2]}
 stage.addEventListener('click',e=>{const b=e.target.closest('.it');if(!b||busy)return;const it=items[+b.dataset.i],[x,y]=centre(e,b);
