@@ -56,12 +56,12 @@ const reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
 /* ================= PALETTE =================
    Default scheme: cold teal glass + gold spark.
    Per view, tint/edge colours are taken from that view's cover image (falls back to teal). */
-const TEAL={t:[.5,.9,.82],e:[.45,.9,.8]};
+const GOLD=[1,.78,.4],TEAL={t:[.5,.9,.82],e:[.45,.9,.8],s:GOLD};
 function paletteOf(src){const k=document.createElement('canvas');k.width=k.height=24;const x=k.getContext('2d');x.drawImage(src,0,0,24,24);const d=x.getImageData(0,0,24,24).data;
  let a=[0,0,0],w=0;for(let i=0;i<d.length;i+=4){const r=d[i],g=d[i+1],b=d[i+2],m=Math.max(r,g,b),s=m-Math.min(r,g,b),q=s*s*m/65025+1e-3;a[0]+=r*q;a[1]+=g*q;a[2]+=b*q;w+=q}
  a=a.map(v=>v/w/255);const m=Math.max(...a)||1;a=a.map(v=>v/m);
  if(Math.max(...a)-Math.min(...a)<.12)return TEAL; // grey image: keep default scheme
- return{t:a.map(v=>v*.6+.4),e:a.map(v=>v*.8+.2)}}
+ return{t:a.map(v=>v*.6+.4),e:a.map(v=>v*.8+.2),s:a.map(v=>v*.65+.35)}}
 
 /* ================= GLASS (from glass-test, extended) ================= */
 const VS=`attribute float aEdge;varying float vE;varying vec3 vN;
@@ -74,7 +74,7 @@ c=mix(c,c*uTint,.3)*1.05*uDim;float e=smoothstep(.55,1.,vE),f=pow(1.-abs(vN.z),2
 float g=exp(-distance(gl_FragCoord.xy,uMouse)/(.14*uRes.y));
 gl_FragColor=vec4(c+uEdge*(e*.8+f*.9)+uSpark*g*(e*1.2+.12+f),1.);}`;
 let R=null,S,Cam,M,G,U,W,H,sh=[],F=[],phase='rest',t0=0,t1=0,mw=null,O={x:0,y:0},onRest=null;
-const Ttint=[1,1,1],Tedge=[1,1,1];
+const Tspark=[1,.78,.4],Tedge=[.45,.9,.8],cssE=[.45,.9,.8];
 function mkDefault(){const c=document.createElement('canvas');c.width=1280;c.height=800;const x=c.getContext('2d');
  const g=x.createRadialGradient(640,280,0,640,400,820);g.addColorStop(0,'#10282b');g.addColorStop(1,'#04080a');x.fillStyle=g;x.fillRect(0,0,1280,800);
  x.font='14px monospace';for(let i=0;i<1400;i++){const px=Math.random()*1280,py=Math.random()*800,d=Math.hypot(px-640,py-400)/700;x.fillStyle=`rgba(127,232,210,${Math.max(0,.1*(1-d))})`;x.fillText(Math.random()<.5?'0':'1',px,py)}
@@ -90,7 +90,7 @@ function entry(url){if(!url)url=BG;if(entries.has(url))return entries.get(url);
 const texOf=e=>{if(!e.tex){e.tex=new THREE.CanvasTexture(e.c);e.tex.minFilter=THREE.LinearFilter;e.tex.generateMipmaps=false}return e.tex};
 let cur=DEF,tgt=null,fm=0,want=0;
 function setCover(url,instant){const my=++want;entry(url).then(e=>{if(my!==want)return;
- Ttint.splice(0,3,...e.pal.t);Tedge.splice(0,3,...e.pal.e);
+ Tspark.splice(0,3,...e.pal.s);Tedge.splice(0,3,...e.pal.e);
  $('#under').style.backgroundImage=`url("${e.url||url}")`;
  if(!R||e===cur&&!tgt)return;
  if(instant){cur=e;tgt=null;fm=0;U.uTex.value=texOf(e);U.uImg.value.set(e.w,e.h);U.uMix.value=0;return}
@@ -102,10 +102,9 @@ function initGL(){
  S=new THREE.Scene();Cam=new THREE.PerspectiveCamera(50,1,.1,50);Cam.position.z=10;
  const t0x=new THREE.CanvasTexture(DEFC);t0x.minFilter=THREE.LinearFilter;t0x.generateMipmaps=false;DEF.tex=t0x;
  U={uTex:{value:t0x},uTex2:{value:t0x},uMix:{value:0},uDim:{value:1},uRes:{value:new THREE.Vector2()},uImg:{value:new THREE.Vector2(1280,800)},uImg2:{value:new THREE.Vector2(1280,800)},uMouse:{value:new THREE.Vector2(-9999,0)},
-  uTint:{value:new THREE.Color(...TEAL.t)},uEdge:{value:new THREE.Color(...TEAL.e)},uSpark:{value:new THREE.Color(1,.78,.4)}};
+  uTint:{value:new THREE.Color(0,0,0)},uEdge:{value:new THREE.Color(0,0,0)},uSpark:{value:new THREE.Color(...GOLD)}};
  M=new THREE.ShaderMaterial({uniforms:U,vertexShader:VS,fragmentShader:FS,side:THREE.DoubleSide});
  G=new THREE.Group();S.add(G);
- Ttint.splice(0,3,...TEAL.t);Tedge.splice(0,3,...TEAL.e);
  addEventListener('resize',build);build();loop()}
 function initF(){F.forEach(s=>{G.remove(s.m);s.m.geometry.dispose()});F.length=0;
 for(let q=0;q<70;q++){const n=3+(Math.random()*3|0),sz=.1+Math.pow(Math.random(),2)*.4,st=1+Math.random()*1.8,pos=new Float32Array((n+1)*3),ed=new Float32Array(n+1),ix=[];
@@ -138,9 +137,9 @@ document.documentElement.addEventListener('mouseleave',()=>{if(R){mw=null;U.uMou
 let last=performance.now()/1e3;
 function loop(){requestAnimationFrame(loop);const now=performance.now()/1e3,dt=Math.min(.05,now-last);last=now;
  // palette + texture crossfade
- const ct=U.uTint.value,ce=U.uEdge.value;let dd=0;
- for(let i=0;i<3;i++){const a=['r','g','b'][i];dd+=Math.abs(Tedge[i]-ce[a]);ct[a]+=(Ttint[i]-ct[a])*.08;ce[a]+=(Tedge[i]-ce[a])*.08}
- if(dd>.004)document.documentElement.style.setProperty('--edge',`rgb(${ce.r*255|0},${ce.g*255|0},${ce.b*255|0})`);
+ const cs=U.uSpark.value;let dd=0;
+ for(let i=0;i<3;i++){const a=['r','g','b'][i];cs[a]+=(Tspark[i]-cs[a])*.08;dd+=Math.abs(Tedge[i]-cssE[i]);cssE[i]+=(Tedge[i]-cssE[i])*.08}
+ if(dd>.004)document.documentElement.style.setProperty('--edge',`rgb(${cssE[0]*255|0},${cssE[1]*255|0},${cssE[2]*255|0})`);
  if(tgt){fm=Math.min(1,fm+dt/.5);U.uMix.value=fm*fm*(3-2*fm);if(fm>=1){cur=tgt;tgt=null;fm=0;U.uTex.value=texOf(cur);U.uImg.value.set(cur.w,cur.h);U.uMix.value=0}}
  sh.forEach(s=>{const m=s.m;
  if(phase==='rest'){let tx=0,ty=0,tz=0;if(mw){const dx=s.hx-mw.x,dy=s.hy-mw.y,d=Math.hypot(dx,dy)+.01,f=Math.exp(-d*d/2.2);tx=dx/d*f*.7;ty=dy/d*f*.7;tz=f*.6;s.rx=-dy/d*f*.6;s.ry=dx/d*f*.6}else{s.rx=s.ry=0}
