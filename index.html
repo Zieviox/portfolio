@@ -8,9 +8,8 @@
 :root{--bg:#04080a;--edge:rgb(115,230,204);--gold:#ffc766;--text:#cfe9e4;--dim:#7f9b96;--head:"Chakra Petch",system-ui,sans-serif;--body:Inter,system-ui,sans-serif}
 *{box-sizing:border-box}html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--text);font:400 16px/1.65 var(--body);overflow:hidden}
-#under{position:fixed;inset:0;z-index:0;background:#04080a center/cover no-repeat;}
+#under{position:fixed;inset:0;z-index:0;background:radial-gradient(120% 90% at 50% 20%,#0b1a1c,#04080a)}
 #c{position:fixed;inset:0;z-index:1;width:100%;height:100%;pointer-events:none}
-#cr{position:fixed;inset:0;z-index:2;width:100%;height:100%;pointer-events:none;transition:opacity .18s}
 #brand{position:fixed;z-index:6;top:0;left:0;padding:calc(18px + env(safe-area-inset-top,0px)) 20px 0;pointer-events:none;text-shadow:0 1px 12px #000}
 #name{font:700 20px var(--head);letter-spacing:.08em;color:#e6fffa}#tag{font-size:13px;color:var(--dim)}
 #back{position:fixed;z-index:7;top:calc(16px + env(safe-area-inset-top,0px));right:16px;display:none;font:500 14px var(--head);color:var(--edge);background:rgba(4,8,10,.6);border:1px solid var(--edge);padding:8px 16px;cursor:pointer;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
@@ -26,11 +25,11 @@ body{background:var(--bg);color:var(--text);font:400 16px/1.65 var(--body);overf
 .it.sm{width:clamp(130px,26vw,210px);height:clamp(100px,20vw,150px)}
 .in{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;width:100%;height:100%;padding:12px;text-align:center;
  background:linear-gradient(135deg,rgba(255,255,255,.11),rgba(255,255,255,.02)),linear-gradient(rgba(4,8,10,.22),rgba(4,8,10,.22)),var(--th,linear-gradient(rgba(30,110,105,.18),rgba(30,110,105,.18)));background-size:auto,auto,cover;background-position:center;
- -webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
+ }
 .in b{font:700 clamp(15px,2.4vw,22px) var(--head);color:#e6fffa;letter-spacing:.04em;text-shadow:0 1px 10px #000}
 .in i{font:500 12px var(--body);color:var(--gold);font-style:normal}
 #empty{display:none;text-align:center;color:var(--dim);padding:30px}
-.wrap{max-width:720px;min-height:100%;margin:0 auto;padding:calc(84px + env(safe-area-inset-top,0px)) 22px 90px;background:rgba(4,8,10,.74);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.wrap{max-width:720px;min-height:100%;margin:0 auto;padding:calc(84px + env(safe-area-inset-top,0px)) 22px 90px;background:rgba(4,8,10,.86)}
 .wrap h1,.wrap h2,.wrap h3{font-family:var(--head);color:#e6fffa;line-height:1.15}
 .wrap h1{font-size:clamp(30px,7vw,48px);margin:0 0 .4em}.wrap h2{font-size:22px;color:var(--edge);margin:1.8em 0 .5em}
 .wrap a{color:var(--edge)}.wrap a:hover{color:var(--gold)}
@@ -42,10 +41,9 @@ body{background:var(--bg);color:var(--text);font:400 16px/1.65 var(--body);overf
 @media (prefers-reduced-motion:reduce){#menu,.wrap{animation:none}}
 </style></head><body>
 <div id="under"></div>
-<canvas id="c"></canvas><canvas id="cr"></canvas>
+<canvas id="c"></canvas>
 <div id="brand"><div id="name"></div><div id="tag"></div></div>
 <button id="back">Back</button>
-<svg width="0" height="0" style="position:absolute"><filter id="hb" x="-40%" y="0" width="180%" height="100%"><feGaussianBlur id="hbs" stdDeviation="0 0"/></filter></svg>
 <div id="stage"></div>
 <div id="hint">tap to shatter · drag to push</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -91,7 +89,6 @@ const texOf=e=>{if(!e.tex){e.tex=new THREE.CanvasTexture(e.c);e.tex.minFilter=TH
 let cur=DEF,tgt=null,fm=0,want=0;
 function setCover(url,instant){const my=++want;entry(url).then(e=>{if(my!==want)return;
  Tspark.splice(0,3,...e.pal.s);Tedge.splice(0,3,...e.pal.e);
- $('#under').style.backgroundImage=`url("${e.url||url}")`;
  if(!R||e===cur&&!tgt)return;
  if(instant){cur=e;tgt=null;fm=0;U.uTex.value=texOf(e);U.uImg.value.set(e.w,e.h);U.uMix.value=0;return}
  if(tgt&&fm>.5){cur=tgt}tgt=e;fm=0;U.uMix.value=0;U.uTex.value=texOf(cur);U.uImg.value.set(cur.w,cur.h);U.uTex2.value=texOf(e);U.uImg2.value.set(e.w,e.h)})}
@@ -160,46 +157,20 @@ function loop(){requestAnimationFrame(loop);const now=performance.now()/1e3,dt=M
  const bx=W/2*1.15*k,by=H/2*1.15*k;if(p.x>bx)p.x=-bx;if(p.x<-bx)p.x=bx;if(p.y>by)p.y=-by;if(p.y<-by)p.y=by});
  R.render(S,Cam)}
 
-/* ================= BREAK TRANSITION =================
-   Like DMC's shots -> rank: impact web flashes, the pane bursts toward the camera,
-   the next screen shows through the flying shards, and the glass reforms over it. */
-const CR=$('#cr'),cc=CR.getContext('2d');
-function cracks(x,y,done){
- const D=Math.min(devicePixelRatio||1,2),w=innerWidth,h=innerHeight;CR.width=w*D;CR.height=h*D;CR.style.opacity=1;cc.setTransform(D,0,0,D,0,0);
- const L=Math.hypot(w,h)*.55,rays=[],n=18+(Math.random()*7|0);
- for(let i=0;i<n;i++){let a=i/n*6.283+rnd(-.12,.12),r=0;const len=L*rnd(.3,1),pts=[[0,0]];while(r<len){r+=rnd(12,40);a+=rnd(-.1,.1);pts.push([Math.cos(a)*r,Math.sin(a)*r,r])}rays.push(pts)}
- const rings=[.04,.09,.17,.3].map(f=>{const r=L*f,m=8+(Math.random()*5|0);return{r:r,p:Array.from({length:m},(_,i)=>{const a=i/m*6.283+rnd(-.2,.2),q=r*rnd(.8,1.2);return[Math.cos(a)*q,Math.sin(a)*q]})}});
- const B=performance.now(),DUR=260,edge=getComputedStyle(document.documentElement).getPropertyValue('--edge')||'#8ff';
- (function f(){const p=Math.min(1,(performance.now()-B)/DUR),Lr=L*(1-(1-p)**3);
-  cc.clearRect(0,0,w,h);cc.save();cc.translate(x,y);
-  const g=cc.createRadialGradient(0,0,0,0,0,220);g.addColorStop(0,`rgba(215,248,255,${.12+.7*p})`);g.addColorStop(1,'rgba(255,255,255,0)');cc.fillStyle=g;cc.fillRect(-220,-220,440,440);
-  cc.strokeStyle='rgba(240,252,255,.92)';cc.shadowColor=edge;cc.shadowBlur=7;cc.lineWidth=1.2;cc.lineJoin='round';
-  rays.forEach(pts=>{cc.beginPath();cc.moveTo(0,0);for(let i=1;i<pts.length&&pts[i][2]<=Lr;i++)cc.lineTo(pts[i][0],pts[i][1]);cc.stroke()});
-  cc.lineWidth=.8;rings.forEach(o=>{if(o.r>Lr)return;cc.beginPath();o.p.forEach((q,i)=>i?cc.lineTo(q[0],q[1]):cc.moveTo(q[0],q[1]));cc.closePath();cc.stroke()});
-  cc.restore();
-  if(p<1)requestAnimationFrame(f);else done()})()}
-function streaks(x,y){const D=Math.min(devicePixelRatio||1,2),w=innerWidth,h=innerHeight;CR.style.opacity=1;CR.width=w*D;CR.height=h*D;cc.setTransform(D,0,0,D,0,0);
- const hl=Array.from({length:70},()=>({y:rnd(0,h),x:rnd(0,w),v:rnd(.7,2.2)*w,len:rnd(.1,.35)*w,w:rnd(.5,1.6)})),L=Math.hypot(w,h),ls=Array.from({length:100},()=>({a:rnd(0,6.283),r:rnd(.02,.2)*L,v:rnd(1.2,3.2)*L,w:rnd(.6,2.2),len:rnd(.04,.22)*L})),B=performance.now();
- (function f(){const t=(performance.now()-B)/1000,p=Math.min(1,t/.4);cc.clearRect(0,0,w,h);
-  const g=cc.createRadialGradient(x,y,0,x,y,L*.35*(.4+p));g.addColorStop(0,`rgba(220,250,255,${.6*(1-p)})`);g.addColorStop(1,'rgba(220,250,255,0)');cc.fillStyle=g;cc.fillRect(0,0,w,h);
-  cc.lineCap='round';ls.forEach(l=>{const r=l.r+l.v*(1-Math.exp(-6*t)),q=l.len*(1-p),c=Math.cos(l.a),n=Math.sin(l.a);cc.strokeStyle=`rgba(235,250,255,${(1-p)*.8})`;cc.lineWidth=l.w;cc.beginPath();cc.moveTo(x+c*r,y+n*r);cc.lineTo(x+c*(r-q),y+n*(r-q));cc.stroke()});
-  hl.forEach(l=>{const x2=l.x+l.v*(1-Math.exp(-6*t));cc.strokeStyle=`rgba(225,248,255,${(1-p)*.45})`;cc.lineWidth=l.w;cc.beginPath();cc.moveTo(x2-l.len*(1-p),l.y);cc.lineTo(x2,l.y);cc.stroke()});
-  if(p<1)requestAnimationFrame(f);else cc.clearRect(0,0,w,h)})()}
+/* ================= TRANSITION: the glass-test shatter, then the next screen slides in ================= */
 let busy=false,animNext=false;
 function landIn(el,delay,anim){if(!el||!anim)return;el.style.opacity=0;
- setTimeout(()=>{const B=performance.now(),D=380,sx=innerWidth*.28;el.style.filter='url(#hb)';
-  (function f(){const t=Math.min(1,(performance.now()-B)/D),r=Math.pow(1-t,3);el.style.opacity=Math.min(1,t*5);el.style.transform=`translateX(${-sx*r}px)`;$('#hbs').setAttribute('stdDeviation',(26*Math.pow(r,.8)).toFixed(1)+' 0');
-   if(t<1)requestAnimationFrame(f);else{el.style.filter='';el.style.transform='';el.style.opacity=1}})()},delay)}
+ setTimeout(()=>{const B=performance.now(),D=380,sx=innerWidth*.28;
+  (function f(){const t=Math.min(1,(performance.now()-B)/D),r=Math.pow(1-t,3);el.style.opacity=Math.min(1,t*5);el.style.transform=`translateX(${-sx*r}px)`;
+   if(t<1)requestAnimationFrame(f);else{el.style.transform='';el.style.opacity=1}})()},delay)}
 function transition(x,y,swap){
  if(busy)return;busy=true;
  if(reduced||!R){swap();busy=false;return}
  animNext=true;
  $('#stage').classList.add('out');
- cracks(x,y,()=>{
-  shatter(x,y);swap();
-  streaks(x,y);
-  onRest=()=>{busy=false};
-  setTimeout(()=>{if(busy&&phase==='rest')busy=false},4000)})}
+ shatter(x,y);swap();
+ onRest=()=>{busy=false};
+ setTimeout(()=>{if(busy&&phase==='rest')busy=false},4000)}
 
 /* ================= MARKDOWN ================= */
 const url=(p,s,sm)=>/^(https?:|data:)/.test(s)?s:`projects/${p.path}/${sm&&p.small?'images-small':'images'}/${encodeURI(s)}`;
