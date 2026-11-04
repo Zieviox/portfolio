@@ -29,7 +29,9 @@ body{background:var(--bg);color:var(--text);font:400 16px/1.65 var(--body);overf
 #stage.page{display:block;overflow-y:auto;touch-action:pan-y}
 #menu{position:absolute;inset:0}
 #tiles{position:fixed;inset:0;z-index:8;pointer-events:none;overflow:hidden}
-.tile{position:absolute;width:0;height:0;will-change:transform,opacity}.tp{position:absolute;overflow:hidden}.snap{position:absolute;transform:translateZ(0);overflow:hidden}
+.tile{position:absolute;width:0;height:0;will-change:transform,opacity}.tp{position:absolute;overflow:hidden;contain:strict}.snap{position:absolute;transform:translateZ(0);overflow:hidden;contain:strict}
+/* clones only: brightness(.8) is the same as a 20% black overlay, without an extra filter surface per panel per tile */
+.snap .bg{filter:none}.snap .bg::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.2)}
 body.asm>#stage,body.asm>.pk,body.asm>#back,body.asm>#brand{opacity:0!important}
 .it{position:absolute;inset:0;padding:0;border:0;background:none;cursor:pointer;color:inherit;font:inherit;overflow:hidden}
 .bg{position:absolute;inset:-2%;background:linear-gradient(rgba(4,8,10,.3),rgba(4,8,10,.55)),var(--th,linear-gradient(135deg,#14403f,#071416)) center/cover;filter:brightness(.8);transition:transform .7s cubic-bezier(.2,.9,.2,1),filter .4s}
@@ -202,12 +204,13 @@ function mkTiles(tpl,mode,o){if(!T.layer){T.layer=document.createElement('div');
 function tick(){T.raf=requestAnimationFrame(tick);const now=performance.now()/1e3,dt=Math.min(.033,now-T.last);T.last=now;let asm=0,unsettled=0;
  for(let i=T.tiles.length-1;i>=0;i--){const t=T.tiles[i],a=now-t.t0-t.delay;
   if(t.mode==='asm')asm++;
+  if(t.done)continue;
   if(a<0){if(t.mode==='asm')unsettled++;continue}
   if(t.mode==='asm'){let fine=true;
    for(let k=0;k<3;k++){t.v[k]+=(-t.p[k]*KP-CP*t.v[k])*dt;t.p[k]+=t.v[k]*dt;const tg=Math.round(t.r[k]/TAU)*TAU;t.w[k]+=((tg-t.r[k])*KR-CR*t.w[k])*dt;t.r[k]+=t.w[k]*dt;
     if(Math.abs(t.p[k])>(k<2?.6:2)||Math.abs(t.v[k])>8||Math.abs(t.r[k]-tg)>.004||Math.abs(t.w[k])>.05)fine=false}
    if(!fine&&a<1.2)unsettled++;
-   t.el.style.opacity=Math.min(1,a/.14);place(t)}
+   t.el.style.opacity=Math.min(1,a/.14);place(t);if(fine&&a>.14)t.done=1}
   else{if(!t.go){t.go=1;const n=(1800+rnd(0,1500))/(1+t.d/600);t.v[0]+=t.dx*n;t.v[1]+=t.dy*n;t.v[2]+=rnd(500,1100);t.w=[rnd(-9,9),rnd(-9,9),rnd(-7,7)]}
    const dr=Math.exp(-1.2*dt);for(let k=0;k<3;k++){t.v[k]*=dr;t.p[k]+=t.v[k]*dt;t.r[k]+=t.w[k]*dt}if(t.p[2]>420)t.p[2]=420;
    t.el.style.opacity=Math.max(0,1-a/.34);place(t);if(a>.36){t.el.remove();T.tiles.splice(i,1)}}}
